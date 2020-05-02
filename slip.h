@@ -10,8 +10,9 @@
 
 typedef unsigned char uchar;
 
+#if F_CPU == 16000000 || F_CPU == 8000000 || F_CPU == 20000000
 #include <SoftwareSerial.h>
-
+#endif
 /* SLIP special character codes
  */
 #define SLIP_END             0xC0    /* indicates end of packet */
@@ -118,7 +119,10 @@ private:
     TSer& _serial;
 };
 
-typedef Slip<SoftwareSerial> SoftwareSlip;
+#if F_CPU == 16000000 || F_CPU == 8000000 || F_CPU == 20000000
+    typedef Slip<SoftwareSerial> SoftwareSlip;
+#endif
+
 typedef Slip<HardwareSerial> HardwareSlip;
 
 #endif
