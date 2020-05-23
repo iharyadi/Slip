@@ -1,6 +1,5 @@
-#ifndef Slip_h
-#define Slip_h
-
+#ifndef SLIP_H
+#define SLIP_H
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -37,11 +36,11 @@ public:
             handleByte(_serial.read());
         }
     };
-
+#if !defined(DEVICE_SERIAL_ASYNCH)
     bool sendpacket(uint8_t *buf,uint8_t len)
     {
         _serial.write(SLIP_END);
-        for(int i=0;i<len;i++)
+        for(uint8_t i=0;i<len;i++)
         {
             switch(buf[i])
             {
@@ -60,11 +59,65 @@ public:
         _serial.write(SLIP_END);
         return true;
     };
+#else
+    bool sendpacket(uint8_t *buf,uint8_t len)
+    {
+        const uint8_t MAX_BUFFER = 64;
+        uint8_t buffWrite[MAX_BUFFER+1];
+
+        if(len > MAX_BUFFER)
+        {
+            return false;
+        }
+
+        if(len == 0)
+        {
+            return false;
+        }
+
+        buffWrite[0] = SLIP_END;
+        uint8_t*  ndxBuff = &buffWrite[1];
+        
+        uint8_t i=0;
+
+        for(;i<len && ndxBuff < &buffWrite[MAX_BUFFER];i++)
+        {
+            switch(buf[i])
+            {
+            case SLIP_END:
+                *ndxBuff = SLIP_ESC;
+                ndxBuff++;
+                *ndxBuff = SLIP_ESC_END;
+                break;
+            case SLIP_ESC:
+                *ndxBuff = SLIP_ESC;
+                ndxBuff++;
+                *ndxBuff =SLIP_ESC_ESC;
+                break;
+            default:
+                *ndxBuff = buf[i];
+            }
+            ndxBuff++;
+        }
+
+        if(i < len && (ndxBuff-&buffWrite[0]) == MAX_BUFFER+1)
+        {
+            return false;
+        }
+
+        return _serial.write(buffWrite,(ndxBuff-&buffWrite[0])) == len;
+    }
+#endif
 
     void setCallback(ReadCallback cb)
     {
         readCallback = cb;
     };
+
+    void begin()
+    {
+        _serial.begin(9600);
+    }
 
 private:
     void handleByte(uint8_t c)
