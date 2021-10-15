@@ -122,48 +122,47 @@ public:
 private:
     void handleByte(uint8_t c)
     {
-      if(inbuffer_ndx>=SLIP_MAXINBUFFERSIZE)
-      {
-        inbuffer_ndx=0;
-        lastbyte = 0;
-        return;
-      } 
-      
-      if(lastbyte==SLIP_ESC)
-      {
-        switch(c)
+
+        if(c==SLIP_END)
         {
-        case SLIP_ESC_END:
-            inbuffer[inbuffer_ndx]=SLIP_END;
-            inbuffer_ndx++;
-            break;
-        case SLIP_ESC_ESC:
-            inbuffer[inbuffer_ndx]=SLIP_ESC;
-            inbuffer_ndx++;
-            break;
+            if(inbuffer_ndx>0)
+            {
+                if(readCallback)
+                {
+                    readCallback(inbuffer,inbuffer_ndx);
+                }
+            }
+            inbuffer_ndx=0;
+            lastbyte=c;
+            return;
         }
-      } 
-      else if(c==SLIP_END)
-      {
-        if(inbuffer_ndx>0)
+
+        if(inbuffer_ndx>=SLIP_MAXINBUFFERSIZE)inbuffer_ndx=0;
+
+        if(lastbyte==SLIP_ESC)
         {
-          if(readCallback)
-          {
-              readCallback(inbuffer,inbuffer_ndx);
-          }
+            switch(c)
+            {
+            case SLIP_ESC_END:
+                inbuffer[inbuffer_ndx]=SLIP_END;
+                inbuffer_ndx++;
+                break;
+            case SLIP_ESC_ESC:
+                inbuffer[inbuffer_ndx]=SLIP_ESC;
+                inbuffer_ndx++;
+                break;
+            }
+            lastbyte=c;
+            return;
         }
-        inbuffer_ndx=0;
-      } 
-      else if(c==SLIP_ESC)
-      {
+
+        if(c!=SLIP_ESC)
+        {
+            inbuffer[inbuffer_ndx]=c;
+            inbuffer_ndx++;
+        }
+
         lastbyte=c;
-      }
-      else
-      { 
-        inbuffer[inbuffer_ndx]=c;
-        inbuffer_ndx++;
-      }
-      lastbyte=c;
     };
 
     ReadCallback readCallback = NULL;
